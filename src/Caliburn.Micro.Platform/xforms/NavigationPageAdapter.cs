@@ -12,6 +12,7 @@ namespace Caliburn.Micro.Xamarin.Forms {
     /// </summary>
     public class NavigationPageAdapter : INavigationService {
         private readonly NavigationPage navigationPage;
+        private Page currentPage;
 
         /// <summary>
         /// Instantiates new instance of NavigationPageAdapter
@@ -19,8 +20,35 @@ namespace Caliburn.Micro.Xamarin.Forms {
         /// <param name="navigationPage">The navigation page to adapat</param>
         public NavigationPageAdapter(NavigationPage navigationPage) {
             this.navigationPage = navigationPage;
+
+            navigationPage.Pushed += OnPushed;
+            navigationPage.Popped += OnPopped;
+            navigationPage.PoppedToRoot += OnPoppedToRoot;
         }
 
+        private void OnPoppedToRoot(object sender, NavigationEventArgs e)
+        {
+            DeactivateView(currentPage);
+            ActivateView(navigationPage.CurrentPage);
+
+            currentPage = navigationPage.CurrentPage;
+        }
+
+        private void OnPopped(object sender, NavigationEventArgs e)
+        {
+            DeactivateView(currentPage);
+            ActivateView(navigationPage.CurrentPage);
+
+            currentPage = navigationPage.CurrentPage;
+        }
+
+        private void OnPushed(object sender, NavigationEventArgs e)
+        {
+            DeactivateView(currentPage);
+            ActivateView(navigationPage.CurrentPage);
+
+            currentPage = navigationPage.CurrentPage;
+        }
 
         /// <summary>
         /// Allow Xamarin to navigate to a ViewModel backed by a view which is of type <see cref="T:Xamarin.Forms.ContentView"/> by adapting the result
@@ -48,28 +76,14 @@ namespace Caliburn.Micro.Xamarin.Forms {
 
         private static void DeactivateView(BindableObject view)
         {
-            if (view == null)
-                return;
-
-            var deactivate = view.BindingContext as IDeactivate;
-
-            if (deactivate != null)
-            {
-                deactivate.Deactivate(false);
-            }
+            var deactivate = view?.BindingContext as IDeactivate;
+            deactivate?.Deactivate(false);
         }
 
         private static void ActivateView(BindableObject view)
         {
-            if (view == null)
-                return;
-
-            var activator = view.BindingContext as IActivate;
-
-            if (activator != null)
-            {
-                activator.Activate();
-            }
+            var activate = view?.BindingContext as IActivate;
+            activate?.Activate();
         }
 
         /// <summary>
@@ -182,9 +196,6 @@ namespace Caliburn.Micro.Xamarin.Forms {
                 page = CreateContentPage(contentView, viewModel);
             }
 
-            page.Appearing += (s, e) => ActivateView(page);
-            page.Disappearing += (s, e) => DeactivateView(page);
-
             return navigationPage.PushAsync(page, animated);
         }
 
@@ -246,10 +257,7 @@ namespace Caliburn.Micro.Xamarin.Forms {
         private bool CanClose() {
             var view = navigationPage.CurrentPage;
 
-            if (view == null)
-                return true;
-
-            var guard = view.BindingContext as IGuardClose;
+            var guard = view?.BindingContext as IGuardClose;
 
             if (guard != null)
             {
